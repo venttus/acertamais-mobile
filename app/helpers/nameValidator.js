@@ -1,4 +1,4 @@
 export function nameValidator(name) {
-  if (!name) return "Please fill in this field."
+  if (!name) return "Por favor, preencha este campo."
   return ''
 }

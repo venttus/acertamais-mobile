@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Exlogrn",
-    "slug": "Exlogrn",
-    "version": "2.0.0",
+    "name": "Acerta+",
+    "slug": "acertaplus",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/app.png",
     "userInterfaceStyle": "light",
@@ -12,13 +12,15 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "newArchEnabled": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/app.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "newArchEnabled": true
     },
     "web": {
       "favicon": "./assets/app.png"
