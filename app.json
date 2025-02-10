@@ -20,10 +20,17 @@
         "foregroundImage": "./assets/app.png",
         "backgroundColor": "#ffffff"
       },
-      "newArchEnabled": true
+      "newArchEnabled": true,
+      "package": "com.i7publicidade.acertamais"
     },
     "web": {
       "favicon": "./assets/app.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "58b278fb-c357-43f7-8cf9-d650bdd25ea4"
+      }
+    },
+    "owner": "katacha"
   }
 }

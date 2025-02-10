@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Text } from "react-native-paper";
-
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { SafeAreaView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Text } from "react-native-paper";
 import { AuthContext } from "../../context/AuthContext";
 import { auth, db } from "../../service/firebase";
 import Background from "../components/Background";
@@ -12,9 +10,7 @@ import Button from "../components/Button";
 import Header from "../components/Header";
 import Logo from "../components/Logo";
 import TextInput from "../components/TextInput";
-import { theme } from "../core/theme";
-
-
+import { theme } from "../core/theme"; // Usando o tema do seu app
 
 // Função para aplicar a máscara no CPF
 const maskCPF = (value) => {
@@ -26,49 +22,68 @@ const maskCPF = (value) => {
     .replace(/-(\d{2})\d+$/, "-$1"); // Limita a quantidade de dígitos após o hífen
 };
 
+// Função para validar o CPF (pode ser substituída por uma biblioteca específica de validação)
+const isValidCPF = (cpf) => {
+  const cleaned = cpf.replace(/\D/g, "");
+  if (cleaned.length !== 11) return false;
+  return true; // Implementação simplificada, para uso real é recomendável uma biblioteca.
+};
+
 export default function LoginScreen({ navigation }) {
   const [cpf, setCpf] = useState({ value: "", error: "" });
   const [password, setPassword] = useState({ value: "", error: "" });
+  const [showPassword, setShowPassword] = useState(false); // Controle para mostrar/ocultar senha
 
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
     if (user) {
-      navigation.navigate("HomeScreen");
-      return;
+      navigation.navigate("HomeTabs");
     }
-  }, [user])
+  }, [user, navigation]);
 
   const onLoginPressed = async () => {
     try {
-
-      // Verifica se a senha foi preenchida
+      // Validação dos campos CPF e Senha
       if (!cpf.value) {
-        setCpf({ ...cpf, error: "CPF não pode ser vazia" });
+        setCpf({ ...cpf, error: "CPF não pode ser vazio" });
         return;
       }
-      // Verifica se a senha foi preenchida
+
+      if (!isValidCPF(cpf.value)) {
+        setCpf({ ...cpf, error: "CPF inválido" });
+        return;
+      }
+
       if (!password.value) {
         setPassword({ ...password, error: "Senha não pode ser vazia" });
         return;
       }
 
-      console.log(cpf, password)
       // Consulta a coleção "funcionarios" no Firestore
       const funcionariosRef = collection(db, "funcionarios");
       const q = query(funcionariosRef, where("cpf", "==", cpf.value));
       const querySnapshot = await getDocs(q);
 
-      // Verifica se encontrou algum documento
       if (querySnapshot.empty) {
         setCpf({ ...cpf, error: "CPF não encontrado" });
         return;
       }
 
       const funcionario = querySnapshot.docs[0].data();
+      const userRef = collection(db, "users");
+      const qUser = query(userRef, where("email", "==", funcionario.email));
+      const querySnapshotUser = await getDocs(qUser);
 
+      if (querySnapshotUser.empty) {
+        setCpf({ ...cpf, error: "Usuário associado ao CPF não encontrado" });
+        return;
+      }
+
+      const userInfo = querySnapshotUser.docs[0].data();
+      console.log(userInfo)
       // Verifica se o usuário tem o papel (role) "user"
-      if (funcionario.role !== "user") {
+      if (userInfo.role !== "employee") {
         setCpf({ ...cpf, error: "Permissão negada" });
         return;
       }
@@ -109,7 +124,7 @@ export default function LoginScreen({ navigation }) {
           errorText={cpf.error}
           autoCapitalize="none"
           keyboardType="number-pad"
-          style={styles.textInput}  // Estilo aplicado
+          style={styles.textInput}
         />
 
         {/* Campo Senha */}
@@ -120,8 +135,8 @@ export default function LoginScreen({ navigation }) {
           onChangeText={(text) => setPassword({ value: text, error: "" })}
           error={!!password.error}
           errorText={password.error}
-          secureTextEntry
-          style={styles.textInput}  // Estilo aplicado
+          secureTextEntry={!showPassword} // Controla visibilidade da senha
+          style={styles.textInput}
         />
 
         <View style={styles.forgotPassword}>
@@ -159,6 +174,6 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   textInput: {
-    marginBottom: 12,  // Adicionando margem para separar os campos
+    marginBottom: 6,  // Adicionando margem para separar os campos
   }
 });

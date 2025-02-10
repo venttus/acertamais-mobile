@@ -1,15 +1,15 @@
 import { doc, getDoc } from "firebase/firestore";
 import React, { useContext, useEffect, useState } from "react";
-import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/MaterialIcons"; // Para ícones modernos
 import { AuthContext } from "../../context/AuthContext";
-import { auth, db } from "../../service/firebase";
-import Logo from "../components/Logo";
+import { db } from "../../service/firebase";
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useContext(AuthContext);
   const [userData, setUserData] = useState(null);
+  const [companyName, setCompanyName] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -17,50 +17,22 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
 
-    console.log(user)
-
     const fetchUserData = async () => {
       try {
-        // Fetch user data
         const userDocRef = doc(db, "funcionarios", user.uid);
         const userDoc = await getDoc(userDocRef);
-        console.log(userDoc.exists())
 
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUserData(userData);
+          const data = userDoc.data();
+          setUserData(data);
 
-          // Fetch company data
-          if (userData.empresaId) {
-            const empresaDocRef = doc(db, "empresas", userData.empresaId);
-            const empresaDoc = await getDoc(empresaDocRef);
+          const companyDocRef = doc(db, "empresas", data.empresaId);
+          const companyDoc = await getDoc(companyDocRef);
 
-            if (empresaDoc.exists()) {
-              const empresaData = empresaDoc.data();
-              setUserData((prevData) => ({
-                ...prevData,
-                empresa: empresaData.nomeFantasia,
-                planoId: empresaData.planos,
-              }));
-
-              // Fetch plan data
-              if (empresaData.planos) {
-                const planoDocRef = doc(db, "planos", empresaData.planos);
-                const planoDoc = await getDoc(planoDocRef);
-
-                if (planoDoc.exists()) {
-                  const planoData = planoDoc.data();
-                  setUserData((prevData) => ({
-                    ...prevData,
-                    plano: planoData.nome,
-                  }));
-                } else {
-                  console.error("Plano não encontrado no Firestore.");
-                }
-              }
-            } else {
-              console.error("Empresa não encontrada no Firestore.");
-            }
+          if (companyDoc.exists()) {
+            setCompanyName(companyDoc.data().nomeFantasia);
+          } else {
+            console.error("Empresa não encontrada no Firestore.");
           }
         } else {
           console.error("Usuário não encontrado no Firestore.");
@@ -75,52 +47,46 @@ export default function ProfileScreen({ navigation }) {
     fetchUserData();
   }, [user, navigation]);
 
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "LoginScreen" }],
-      });
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
-  };
-
-  if (!user || loading) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#003DA5" />
         <Text style={styles.loadingText}>Carregando...</Text>
       </SafeAreaView>
     );
   }
 
-  const imageUrl = `https://img1.niftyimages.com/8ddh/k8w5/t6n7?cpf=${encodeURIComponent(userData?.cpf || "")}&email=${encodeURIComponent(user.email || "")}&empresa=${encodeURIComponent(userData?.empresa || "")}&idade=${encodeURIComponent(userData?.idade || "")}&image=${encodeURIComponent(userData?.photoURL || "")}&name=${encodeURIComponent(userData?.nome || "")}&plano=${encodeURIComponent(userData?.plano || "")}&profissao=${encodeURIComponent(userData?.role || "")}`;
-
-  // Handle image load state
-  const handleImageLoad = () => setImageLoading(false);
-
   return (
     <SafeAreaView style={styles.container}>
+      {/* Cabeçalho com imagem de fundo e ícone de usuário */}
       <View style={styles.header}>
-        <Logo />
-      </View>
-      {/* Dynamic Image */}
-      <View style={styles.imageContainer}>
-        {/* Show loading spinner until the image is loaded */}
-        {imageLoading && <ActivityIndicator size="large" color="#3A76F0" />}
-        <Image
-          source={{ uri: imageUrl }}
-          style={[styles.dynamicImage]}
-          onLoad={handleImageLoad}
-          resizeMode="contain" // "contain" to avoid cutting the image
-        />
+        <View style={styles.userIconContainer}>
+          <Icon name="person" size={80} color="#FFF" style={styles.userIcon} />
+        </View>
       </View>
 
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Sair</Text>
-      </TouchableOpacity>
+      {/* Nome do usuário e empresa */}
+      <View style={styles.userInfo}>
+        <Text style={styles.welcomeText}>Bem-vindo, {userData?.nome || "Usuário"}!</Text>
+        <Text style={styles.companyText}>{companyName || "Empresa não disponível"}</Text>
+      </View>
+
+      {/* Dashboard */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.dashboardContainer}>
+          <Text style={styles.dashboardTitle}>Dashboard</Text>
+
+          {/* Card de serviços contratados */}
+          <View style={styles.dashboardCard}>
+            <Icon name="work" size={24} color="#003DA5" style={styles.cardIcon} />
+            <Text style={styles.dashboardLabel}>Serviços Contratados:</Text>
+            <Text style={styles.dashboardInfo}>
+              {userData?.servicosContratados > 0 ? userData?.servicosContratados : "0"}
+            </Text>
+          </View>
+
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -134,48 +100,107 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: "#8A8F9D",
+    color: "#003DA5",
+    marginTop: 10,
+    fontWeight: "500",
   },
   container: {
     flex: 1,
     backgroundColor: "#F4F7FC",
-    padding: 20,
-    justifyContent: "space-between", // Allow content to spread across the screen with space between
-  },
-  imageContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1, // Make sure the image container takes the available space
-    marginBottom: 5, // Give some space between the image and button
-  },
-  dynamicImage: {
-    width: "170%", // Ensure the image stretches to fill available width
-    height: "100%", // Set dynamic height (60% of the screen height) to make the image larger
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E6E8EB",
-    transform: [{ rotate: '90deg' }]
-  },
-  logoutButton: {
-    backgroundColor: "#3A76F0",
-    paddingVertical: 15,
-    borderRadius: 30,
-    alignItems: "center",
-    marginTop: 20, // Give some space above the button
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 10,
-  },
-  logoutText: {
-    fontSize: 18,
-    color: "#FFF",
-    fontWeight: "600",
   },
   header: {
-    flexDirection: "row",
+    height: 200,
+    position: "relative",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30,
-  }
+  },
+  headerBackground: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+    opacity: 0.8,
+  },
+  userIconContainer: {
+    backgroundColor: "#003DA5",
+    padding: 20,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: "#FFF",
+  },
+  userInfo: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#003DA5",
+    marginBottom: 5,
+  },
+  companyText: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#666",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  dashboardContainer: {
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  dashboardTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#003DA5",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  dashboardCard: {
+    backgroundColor: "#F4F7FC",
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  cardIcon: {
+    marginBottom: 10,
+  },
+  dashboardLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+  },
+  dashboardInfo: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#003DA5",
+    marginTop: 5,
+  },
+  actionButton: {
+    backgroundColor: "#003DA5",
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  logoutButton: {
+    backgroundColor: "#FF4C4C",
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFF",
+  },
 });
