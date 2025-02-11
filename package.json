@@ -32,13 +32,9 @@
     "yup": "^1.4.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@babel/core": "^7.20.0",
     "@types/react": "~18.3.12",
     "typescript": "^5.3.3"
-=======
-    "@babel/core": "^7.20.0"
->>>>>>> 9d8db93942c99d9b3cb16a5e91864f2cfc1a6305
   },
   "private": true
 }
